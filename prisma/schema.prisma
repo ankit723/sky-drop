@@ -1,0 +1,143 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  ADMIN
+  OPERATOR
+  CLIENT
+}
+
+enum StationStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum DroneStatus {
+  AVAILABLE
+  CHARGING
+  BUSY
+  MAINTENANCE
+}
+
+enum DeliveryStatus {
+  PENDING
+  APPROVED
+  ASSIGNED
+  PICKED_UP
+  IN_TRANSIT
+  DELIVERED
+  FAILED
+  CANCELLED
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum NotificationType {
+  DELIVERY_APPROVED
+  DRONE_ASSIGNED
+  DELIVERY_FAILED
+  PACKAGE_DELIVERED
+  GENERAL
+}
+
+model User {
+  id            String         @id @default(cuid())
+  email         String         @unique
+  password      String
+  name          String
+  role          Role           @default(CLIENT)
+  phone         String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  station       Station?
+  deliveries    Delivery[]
+  notifications Notification[]
+}
+
+model Station {
+  id         String        @id @default(cuid())
+  name       String
+  address    String
+  latitude   Float
+  longitude  Float
+  status     StationStatus @default(ACTIVE)
+  operatorId String?       @unique
+  operator   User?         @relation(fields: [operatorId], references: [id])
+  drones     Drone[]
+  deliveries Delivery[]
+  createdAt  DateTime      @default(now())
+}
+
+model Drone {
+  id              String      @id @default(cuid())
+  droneCode       String      @unique
+  batteryPercent  Int         @default(100)
+  payloadCapacity Float       @default(5.0)
+  status          DroneStatus @default(AVAILABLE)
+  currentLat      Float?
+  currentLng      Float?
+  stationId       String
+  station         Station     @relation(fields: [stationId], references: [id])
+  deliveries      Delivery[]
+  createdAt       DateTime    @default(now())
+}
+
+model Delivery {
+  id            String         @id @default(cuid())
+  trackingId    String         @unique
+  pickupAddress String
+  pickupLat     Float
+  pickupLng     Float
+  dropAddress   String
+  dropLat       Float
+  dropLng       Float
+  weightKg      Float
+  priority      Priority       @default(MEDIUM)
+  status        DeliveryStatus @default(PENDING)
+  estimatedETA  String?
+  clientId      String
+  client        User           @relation(fields: [clientId], references: [id])
+  stationId     String?
+  station       Station?       @relation(fields: [stationId], references: [id])
+  droneId       String?
+  drone         Drone?         @relation(fields: [droneId], references: [id])
+  logs          DeliveryLog[]
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+}
+
+model DeliveryLog {
+  id         String         @id @default(cuid())
+  deliveryId String
+  delivery   Delivery       @relation(fields: [deliveryId], references: [id], onDelete: Cascade)
+  status     DeliveryStatus
+  message    String
+  lat        Float?
+  lng        Float?
+  createdAt  DateTime       @default(now())
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  message   String
+  type      NotificationType @default(GENERAL)
+  read      Boolean          @default(false)
+  createdAt DateTime         @default(now())
+}
