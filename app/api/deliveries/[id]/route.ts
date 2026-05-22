@@ -1,3 +1,4 @@
+import { NotificationType } from "@/app/generated/prisma/enums";
 import prisma from "@/lib/prisma";
 import { getSession } from "@/lib/session";
 import { NextRequest } from "next/server";
@@ -87,7 +88,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
         userId: delivery.clientId,
         title: n.title,
         message: n.msg,
-        type: n.type,
+        type: n.type as NotificationType,
       },
     });
   }
